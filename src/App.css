@@ -1,0 +1,410 @@
+html, body, #root, .app {
+  margin: 0;
+  height: 100%;
+  height: 100dvh;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  overscroll-behavior: none;
+  background: #100c0a;
+}
+
+.app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #100c0a;
+  overflow: hidden;
+}
+
+.vignette {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 42%,
+    rgba(8, 5, 3, 0.45) 78%,
+    rgba(6, 3, 2, 0.78) 100%
+  );
+}
+
+.loader {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding:
+    max(24px, env(safe-area-inset-top))
+    max(24px, env(safe-area-inset-right))
+    max(24px, env(safe-area-inset-bottom))
+    max(24px, env(safe-area-inset-left));
+  box-sizing: border-box;
+  color: #e8d5b5;
+  font-family: "Cormorant Garamond", "Times New Roman", serif;
+  letter-spacing: 0.08em;
+  background: #100c0a;
+}
+
+.start-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding:
+    max(24px, env(safe-area-inset-top))
+    max(24px, env(safe-area-inset-right))
+    max(24px, env(safe-area-inset-bottom))
+    max(24px, env(safe-area-inset-left));
+  box-sizing: border-box;
+  background: rgba(10, 7, 5, 0.42);
+  pointer-events: auto;
+}
+
+.start-overlay__button {
+  appearance: none;
+  border: 1px solid rgba(201, 160, 120, 0.55);
+  background: rgba(24, 16, 12, 0.88);
+  color: #f0ddc0;
+  font-family: "Cormorant Garamond", "Times New Roman", serif;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  letter-spacing: 0.12em;
+  padding: 0.85em 1.6em;
+  min-height: 48px;
+  min-width: min(100%, 16rem);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.start-overlay__button:hover {
+  color: #fff4e2;
+  border-color: rgba(232, 213, 181, 0.85);
+  background: rgba(36, 24, 18, 0.95);
+  transform: translateY(-1px);
+}
+
+.start-overlay__button:focus-visible {
+  outline: 2px solid rgba(201, 160, 120, 0.9);
+  outline-offset: 4px;
+}
+
+.card-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  padding:
+    max(16px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+  box-sizing: border-box;
+}
+
+.card-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  background: rgba(8, 5, 3, 0.72);
+}
+
+.card-modal__panel {
+  position: relative;
+  z-index: 1;
+  width: min(920px, 100%);
+  max-height: min(88dvh, 900px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 28px;
+  box-sizing: border-box;
+  color: #f0e2c8;
+  background:
+    linear-gradient(160deg, rgba(48, 28, 18, 0.96), rgba(18, 12, 10, 0.98));
+  border: 1px solid rgba(201, 160, 120, 0.35);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+.card-modal__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.card-modal__langs,
+.card-modal__actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.card-modal__lang,
+.card-modal__skip,
+.card-modal__close {
+  min-height: 44px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  font: inherit;
+}
+
+.card-modal__lang {
+  border: 1px solid rgba(201, 160, 120, 0.3);
+  background: transparent;
+  color: #c9a078;
+  padding: 8px 12px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  font-size: 0.9rem;
+}
+
+.card-modal__lang.is-active {
+  border-color: rgba(201, 160, 120, 0.55);
+  background: rgba(20, 12, 8, 0.7);
+  color: #e8d5b5;
+}
+
+.card-modal__close {
+  border: 1px solid rgba(201, 160, 120, 0.45);
+  background: rgba(20, 12, 8, 0.7);
+  color: #e8d5b5;
+  padding: 8px 14px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+}
+
+.card-modal__skip {
+  border: 1px solid rgba(201, 160, 120, 0.3);
+  background: transparent;
+  color: #c9a078;
+  padding: 8px 14px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+}
+
+.card-modal__layout {
+  display: grid;
+  grid-template-columns: minmax(160px, 240px) 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.card-modal__image-frame {
+  overflow: hidden;
+  border: 1px solid rgba(201, 160, 120, 0.28);
+  background: #1a120e;
+  clip-path: inset(0 0 100% 0);
+  animation: card-reveal-down 0.8s ease forwards;
+}
+
+.card-modal__image-frame.is-revealed,
+.card-modal__image-frame.is-instant {
+  animation: none;
+  clip-path: inset(0 0 0 0);
+}
+
+.card-modal__image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.card-modal__image.is-reversed {
+  transform: rotate(180deg);
+}
+
+@keyframes card-reveal-down {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.card-modal__orientation {
+  margin: 0 0 8px;
+  color: #c9a078;
+  letter-spacing: 0.12em;
+  font-size: 0.85rem;
+  min-height: 1.2em;
+}
+
+.card-modal__title {
+  margin: 0 0 20px;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #fff4e2;
+  min-height: 1.2em;
+}
+
+.card-modal__section {
+  margin-bottom: 16px;
+}
+
+.card-modal__section h3 {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #c9a078;
+  letter-spacing: 0.08em;
+}
+
+.card-modal__section p {
+  margin: 0;
+  line-height: 1.7;
+  color: #e8d5b5;
+  font-size: 0.98rem;
+  min-height: 1.7em;
+}
+
+.card-modal__section p .is-typing::after,
+.card-modal__title .is-typing::after,
+.card-modal__orientation .is-typing::after {
+  content: '';
+  display: inline-block;
+  width: 0.55em;
+  height: 1em;
+  margin-left: 1px;
+  vertical-align: -0.1em;
+  background: rgba(232, 213, 181, 0.75);
+  animation: caret-blink 0.8s steps(1) infinite;
+}
+
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .start-overlay__button {
+    transition: none;
+  }
+
+  .start-overlay__button:hover {
+    transform: none;
+  }
+
+  .card-modal__image-frame {
+    animation: none;
+    clip-path: inset(0 0 0 0);
+  }
+
+  .card-modal__section p .is-typing::after,
+  .card-modal__title .is-typing::after,
+  .card-modal__orientation .is-typing::after {
+    animation: none;
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .start-overlay__button {
+    width: min(100%, 20rem);
+    font-size: 1.35rem;
+    padding: 1em 1.4em;
+  }
+
+  .card-modal {
+    padding:
+      max(8px, env(safe-area-inset-top))
+      max(8px, env(safe-area-inset-right))
+      max(8px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
+    align-items: stretch;
+  }
+
+  .card-modal__panel {
+    width: 100%;
+    max-height: none;
+    height: 100%;
+    padding: 16px 14px 20px;
+    border-radius: 0;
+  }
+
+  .card-modal__toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    margin: -4px 0 16px;
+    padding: 4px 0 12px;
+    background: linear-gradient(
+      180deg,
+      rgba(28, 18, 12, 0.98) 70%,
+      rgba(28, 18, 12, 0)
+    );
+    gap: 8px;
+  }
+
+  .card-modal__lang,
+  .card-modal__skip,
+  .card-modal__close {
+    flex: 1 1 auto;
+    min-width: 4.5rem;
+    justify-content: center;
+    text-align: center;
+    font-size: 0.92rem;
+    padding: 10px 12px;
+  }
+
+  .card-modal__langs,
+  .card-modal__actions {
+    flex: 1 1 auto;
+  }
+
+  .card-modal__layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .card-modal__image-frame {
+    width: min(200px, 48vw);
+    margin: 0 auto;
+  }
+
+  .card-modal__title {
+    font-size: clamp(1.35rem, 6vw, 1.85rem);
+    margin-bottom: 14px;
+  }
+
+  .card-modal__section p {
+    font-size: 0.95rem;
+    line-height: 1.75;
+  }
+
+  .card-modal__section {
+    margin-bottom: 14px;
+    padding-bottom: 2px;
+  }
+
+  .card-modal__body {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (hover: none) {
+  .start-overlay__button:hover {
+    transform: none;
+  }
+}
