@@ -18,6 +18,7 @@ type CardProps = {
   shuffleStartedAt: number | null
   gatherStartedAt: number | null
   deckCard?: DeckCard
+  displayScale?: number
   onGathered?: () => void
   onLinedUp?: () => void
   onSelect?: (card: DeckCard) => void
@@ -91,6 +92,7 @@ export function Card({
   shuffleStartedAt,
   gatherStartedAt,
   deckCard,
+  displayScale = 1,
   onGathered,
   onLinedUp,
   onSelect,
@@ -103,9 +105,7 @@ export function Card({
   const interactive = phase === 'ready'
   const compact = useCompactViewport()
   useCursor(hovered && interactive && !compact)
-  const hitSize: [number, number, number] = compact
-    ? [0.3, 0.05, 0.48]
-    : [0.2, 0.03, 0.34]
+  const hitSize: [number, number, number] = [0.2, 0.03, 0.34]
 
   useLayoutEffect(() => {
     object.traverse((child) => {
@@ -247,7 +247,11 @@ export function Card({
       rotation-y={motionDriven ? undefined : pose.ry}
       rotation-z={motionDriven ? undefined : pose.rz}
     >
-      <animated.group position-y={liftY} rotation-x={flipX}>
+      <animated.group
+        position-y={liftY}
+        rotation-x={flipX}
+        scale={displayScale}
+      >
         <mesh
           onPointerOver={(event: ThreeEvent<PointerEvent>) => {
             event.stopPropagation()
@@ -266,7 +270,10 @@ export function Card({
             onSelect?.(deckCard)
           }}
         >
-          <boxGeometry key={compact ? 'hit-compact' : 'hit-desktop'} args={hitSize} />
+          <boxGeometry
+            key={`hit-${displayScale.toFixed(2)}`}
+            args={hitSize}
+          />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
         <primitive object={object} />

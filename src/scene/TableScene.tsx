@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useSpring } from '@react-spring/three'
 import { useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, useGLTF, useTexture } from '@react-three/drei'
-import { Mesh, Object3D, SpotLight as ThreeSpotLight } from 'three'
+import { Mesh, Object3D, PerspectiveCamera, type Camera, SpotLight as ThreeSpotLight } from 'three'
 import { clone } from 'three/addons/utils/SkeletonUtils.js'
 import { Card, type CardPhase, SHUFFLE_DURATION } from './Card'
 import { drawRandomCards, type DeckCard } from '../data/deck'
@@ -51,9 +51,34 @@ function prepareRoom(source: Object3D) {
 // High-angle view: table in the foreground, shaman behind it (not head-on).
 // Cards ≈ (0, 0.55, 1.07); shaman at origin facing +Z (entrance).
 const LOOK_AT = [0, 0.85, 0.55] as const
+const LOOK_AT_COMPACT = [0, 0.7, 0.95] as const
 const CAMERA_START = [0, 3.05, 5.1] as const
 const CAMERA_END = [0, 2.35, 2.8] as const
-const CAMERA_END_COMPACT = [0, 2.05, 2.35] as const
+/** Keep the phone camera inside the ger while framing the card row. */
+const CAMERA_END_COMPACT = [0, 2.4, 2.85] as const
+/** Center-to-center spacing for the compact lineup (avoids overlap). */
+const COMPACT_CARD_PITCH = 0.2
+/** Uniform card scale on phones so 7 cards fit without stacking. */
+const COMPACT_CARD_SCALE = 0.72
+const COMPACT_FOV = 68
+const DESKTOP_FOV = 55
+
+function restPositionForViewport(
+  rest: [number, number, number],
+  index: number,
+  count: number,
+  compact: boolean,
+): [number, number, number] {
+  if (!compact) {
+    return rest
+  }
+  const x = (index - (count - 1) / 2) * COMPACT_CARD_PITCH
+  return [x, rest[1], rest[2]]
+}
+
+function lookAtForViewport(compact: boolean) {
+  return compact ? LOOK_AT_COMPACT : LOOK_AT
+}
 
 const POLAR_CENTER = Math.acos(
   (CAMERA_END[1] - LOOK_AT[1]) /
@@ -79,13 +104,22 @@ function LimitedLookControls() {
   )
 }
 
-function IdleCamera() {
+function applyViewportCamera(camera: Camera, compact: boolean) {
+  if (camera instanceof PerspectiveCamera) {
+    camera.fov = compact ? COMPACT_FOV : DESKTOP_FOV
+    camera.updateProjectionMatrix()
+  }
+  const lookAt = lookAtForViewport(compact)
+  camera.position.set(...CAMERA_START)
+  camera.lookAt(lookAt[0], lookAt[1], lookAt[2])
+}
+
+function IdleCamera({ compact }: { compact: boolean }) {
   const { camera } = useThree()
 
   useLayoutEffect(() => {
-    camera.position.set(...CAMERA_START)
-    camera.lookAt(...LOOK_AT)
-  }, [camera])
+    applyViewportCamera(camera, compact)
+  }, [camera, compact])
 
   return null
 }
@@ -99,11 +133,11 @@ function SceneCamera({
 }) {
   const { camera } = useThree()
   const end = compact ? CAMERA_END_COMPACT : CAMERA_END
+  const lookAt = lookAtForViewport(compact)
 
   useLayoutEffect(() => {
-    camera.position.set(...CAMERA_START)
-    camera.lookAt(...LOOK_AT)
-  }, [camera])
+    applyViewportCamera(camera, compact)
+  }, [camera, compact])
 
   useSpring({
     from: { x: CAMERA_START[0], y: CAMERA_START[1], z: CAMERA_START[2] },
@@ -112,7 +146,7 @@ function SceneCamera({
     config: { mass: 1, tension: 80, friction: 28 },
     onChange: ({ value }) => {
       camera.position.set(value.x, value.y, value.z)
-      camera.lookAt(...LOOK_AT)
+      camera.lookAt(lookAt[0], lookAt[1], lookAt[2])
     },
     onRest: onSettled,
   })
@@ -274,7 +308,7 @@ export function TableScene({
       {started ? (
         <SceneCamera compact={compact} onSettled={handleIntroSettled} />
       ) : (
-        <IdleCamera />
+        <IdleCamera compact={compact} />
       )}
       {phase === 'ready' && !compact ? <LimitedLookControls /> : null}
       <FortuneParlorLights />
@@ -283,7 +317,13 @@ export function TableScene({
         <Card
           key={object.name}
           object={object}
-          restPosition={restPosition}
+          restPosition={restPositionForViewport(
+            restPosition,
+            index,
+            cards.length,
+            compact,
+          )}
+          displayScale={compact ? COMPACT_CARD_SCALE : 1}
           index={index}
           count={cards.length}
           phase={phase}

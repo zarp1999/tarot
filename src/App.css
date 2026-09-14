@@ -327,79 +327,85 @@ body {
   }
 
   .card-modal {
+    place-items: center;
+    align-items: center;
     padding:
-      max(8px, env(safe-area-inset-top))
-      max(8px, env(safe-area-inset-right))
-      max(8px, env(safe-area-inset-bottom))
-      max(8px, env(safe-area-inset-left));
-    align-items: stretch;
+      max(16px, env(safe-area-inset-top))
+      max(14px, env(safe-area-inset-right))
+      max(16px, env(safe-area-inset-bottom))
+      max(14px, env(safe-area-inset-left));
   }
 
   .card-modal__panel {
-    width: 100%;
-    max-height: none;
-    height: 100%;
-    padding: 16px 14px 20px;
-    border-radius: 0;
+    width: min(100%, 400px);
+    max-height: min(78dvh, 620px);
+    height: auto;
+    padding: 14px 12px 16px;
+    border-radius: 14px;
   }
 
   .card-modal__toolbar {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    margin: -4px 0 16px;
-    padding: 4px 0 12px;
-    background: linear-gradient(
-      180deg,
-      rgba(28, 18, 12, 0.98) 70%,
-      rgba(28, 18, 12, 0)
-    );
-    gap: 8px;
+    flex-wrap: nowrap;
+    gap: 6px;
+    margin: 0 0 12px;
+    padding: 0;
+    position: static;
+    background: none;
+  }
+
+  .card-modal__langs,
+  .card-modal__actions {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    gap: 4px;
   }
 
   .card-modal__lang,
   .card-modal__skip,
   .card-modal__close {
-    flex: 1 1 auto;
-    min-width: 4.5rem;
-    justify-content: center;
-    text-align: center;
-    font-size: 0.92rem;
-    padding: 10px 12px;
-  }
-
-  .card-modal__langs,
-  .card-modal__actions {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
+    min-width: 0;
+    min-height: 30px;
+    padding: 3px 7px;
+    font-size: 0.7rem;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
   }
 
   .card-modal__layout {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 12px;
   }
 
   .card-modal__image-frame {
-    width: min(200px, 48vw);
+    width: min(132px, 34vw);
     margin: 0 auto;
   }
 
   .card-modal__title {
-    font-size: clamp(1.35rem, 6vw, 1.85rem);
-    margin-bottom: 14px;
+    font-size: clamp(1.2rem, 5vw, 1.55rem);
+    margin-bottom: 10px;
+  }
+
+  .card-modal__orientation {
+    font-size: 0.78rem;
   }
 
   .card-modal__section p {
-    font-size: 0.95rem;
-    line-height: 1.75;
+    font-size: 0.88rem;
+    line-height: 1.65;
+  }
+
+  .card-modal__section h3 {
+    font-size: 0.85rem;
   }
 
   .card-modal__section {
-    margin-bottom: 14px;
-    padding-bottom: 2px;
+    margin-bottom: 12px;
   }
 
   .card-modal__body {
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    padding-bottom: 4px;
   }
 }
 
