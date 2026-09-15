@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useSpring } from '@react-spring/three'
 import { useFrame, useThree } from '@react-three/fiber'
-import { OrbitControls, useGLTF, useTexture } from '@react-three/drei'
-import { Mesh, Object3D, PerspectiveCamera, type Camera, SpotLight as ThreeSpotLight } from 'three'
+import { useGLTF, useTexture } from '@react-three/drei'
+import {
+  Mesh,
+  Object3D,
+  PerspectiveCamera,
+  Vector3,
+  type Camera,
+  SpotLight as ThreeSpotLight,
+} from 'three'
 import { clone } from 'three/addons/utils/SkeletonUtils.js'
 import { Card, type CardPhase, SHUFFLE_DURATION } from './Card'
 import { drawRandomCards, type DeckCard } from '../data/deck'
@@ -80,28 +87,98 @@ function lookAtForViewport(compact: boolean) {
   return compact ? LOOK_AT_COMPACT : LOOK_AT
 }
 
-const POLAR_CENTER = Math.acos(
-  (CAMERA_END[1] - LOOK_AT[1]) /
-    Math.hypot(CAMERA_END[1] - LOOK_AT[1], CAMERA_END[2] - LOOK_AT[2]),
-)
-const POLAR_RANGE = 0.16
+function cameraEndForViewport(compact: boolean) {
+  return compact ? CAMERA_END_COMPACT : CAMERA_END
+}
 
-function LimitedLookControls() {
-  return (
-    <OrbitControls
-      makeDefault
-      enablePan={false}
-      enableZoom={false}
-      enableDamping
-      dampingFactor={0.08}
-      rotateSpeed={0.35}
-      target={[LOOK_AT[0], LOOK_AT[1], LOOK_AT[2]]}
-      minAzimuthAngle={0}
-      maxAzimuthAngle={0}
-      minPolarAngle={POLAR_CENTER - POLAR_RANGE}
-      maxPolarAngle={POLAR_CENTER + POLAR_RANGE}
-    />
-  )
+const LOOK_SENSITIVITY = 0.0045
+const PITCH_LIMIT = Math.PI / 2 - 0.12
+
+/** Fixed camera position; pointer drag changes look direction only. */
+function FixedLookControls({
+  position,
+  initialLookAt,
+}: {
+  position: readonly [number, number, number]
+  initialLookAt: readonly [number, number, number]
+}) {
+  const { camera, gl } = useThree()
+  const yawRef = useRef(0)
+  const pitchRef = useRef(0)
+  const draggingRef = useRef(false)
+  const lastPointerRef = useRef({ x: 0, y: 0 })
+  const lookDir = useMemo(() => new Vector3(), [])
+
+  useLayoutEffect(() => {
+    camera.position.set(position[0], position[1], position[2])
+    camera.lookAt(initialLookAt[0], initialLookAt[1], initialLookAt[2])
+    camera.getWorldDirection(lookDir)
+    yawRef.current = Math.atan2(lookDir.x, lookDir.z)
+    pitchRef.current = Math.asin(
+      Math.max(-1, Math.min(1, lookDir.y)),
+    )
+  }, [camera, initialLookAt, lookDir, position])
+
+  useEffect(() => {
+    const element = gl.domElement
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.button !== 0) {
+        return
+      }
+      draggingRef.current = true
+      lastPointerRef.current = { x: event.clientX, y: event.clientY }
+    }
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (!draggingRef.current) {
+        return
+      }
+      const dx = event.clientX - lastPointerRef.current.x
+      const dy = event.clientY - lastPointerRef.current.y
+      lastPointerRef.current = { x: event.clientX, y: event.clientY }
+      yawRef.current -= dx * LOOK_SENSITIVITY
+      pitchRef.current -= dy * LOOK_SENSITIVITY
+      pitchRef.current = Math.max(
+        -PITCH_LIMIT,
+        Math.min(PITCH_LIMIT, pitchRef.current),
+      )
+    }
+
+    const onPointerUp = () => {
+      draggingRef.current = false
+    }
+
+    element.addEventListener('pointerdown', onPointerDown)
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', onPointerUp)
+    window.addEventListener('pointercancel', onPointerUp)
+
+    return () => {
+      element.removeEventListener('pointerdown', onPointerDown)
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', onPointerUp)
+      window.removeEventListener('pointercancel', onPointerUp)
+    }
+  }, [gl])
+
+  useFrame(() => {
+    camera.position.set(position[0], position[1], position[2])
+    const yaw = yawRef.current
+    const pitch = pitchRef.current
+    lookDir.set(
+      Math.sin(yaw) * Math.cos(pitch),
+      Math.sin(pitch),
+      Math.cos(yaw) * Math.cos(pitch),
+    )
+    camera.lookAt(
+      camera.position.x + lookDir.x,
+      camera.position.y + lookDir.y,
+      camera.position.z + lookDir.z,
+    )
+  })
+
+  return null
 }
 
 function applyViewportCamera(camera: Camera, compact: boolean) {
@@ -310,7 +387,12 @@ export function TableScene({
       ) : (
         <IdleCamera compact={compact} />
       )}
-      {phase === 'ready' && !compact ? <LimitedLookControls /> : null}
+      {phase === 'ready' ? (
+        <FixedLookControls
+          position={cameraEndForViewport(compact)}
+          initialLookAt={lookAtForViewport(compact)}
+        />
+      ) : null}
       <FortuneParlorLights />
       <primitive object={room} />
       {cards.map(({ object, restPosition }, index) => (

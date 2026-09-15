@@ -1,4 +1,4 @@
-import detailed from './cards.detailed.ja-mn.json'
+import natural from './cards.natural.ja-mn.json'
 import type { DeckCard } from './deck'
 
 export type ReadingLanguage = 'ja' | 'mn'
@@ -28,7 +28,7 @@ export type CardReading = {
   topics: ReadingTopics
 }
 
-type DetailedDataset = {
+type CardDataset = {
   labels: Record<
     ReadingLanguage,
     {
@@ -54,7 +54,7 @@ type DetailedDataset = {
   }>
 }
 
-const dataset = detailed as DetailedDataset
+const dataset = natural as CardDataset
 
 export function getCardReading(
   card: DeckCard,

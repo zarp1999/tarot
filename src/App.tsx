@@ -1,4 +1,5 @@
 import { Suspense, useCallback, useMemo, useState } from 'react'
+import type { FormEvent } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { useProgress } from '@react-three/drei'
 import { TableScene } from './scene/TableScene'
@@ -7,6 +8,17 @@ import { getCardReading, type ReadingLanguage } from './data/readings'
 import type { DeckCard } from './data/deck'
 import { seedFromMoment } from './data/rng'
 import './App.css'
+
+const GATE_STORAGE_KEY = 'tarot-access'
+const GATE_PASSWORD = '0830'
+
+function readGateUnlocked(): boolean {
+  try {
+    return sessionStorage.getItem(GATE_STORAGE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
 
 function LoadingScreen({ suppress }: { suppress: boolean }) {
   const { active, progress } = useProgress()
@@ -42,7 +54,63 @@ function StartOverlay({
   )
 }
 
+function AccessGate({ onUnlock }: { onUnlock: () => void }) {
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState(false)
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (password.trim() === GATE_PASSWORD) {
+      try {
+        sessionStorage.setItem(GATE_STORAGE_KEY, '1')
+      } catch {
+        // Ignore storage failures; unlock still works for this visit.
+      }
+      setError(false)
+      onUnlock()
+      return
+    }
+    setError(true)
+  }
+
+  return (
+    <div className="access-gate">
+      <form className="access-gate__panel" onSubmit={handleSubmit}>
+        <label className="access-gate__label" htmlFor="access-password">
+          パスワード
+        </label>
+        <input
+          id="access-password"
+          className="access-gate__input"
+          type="password"
+          inputMode="numeric"
+          autoComplete="current-password"
+          autoFocus
+          value={password}
+          onChange={(event) => {
+            setPassword(event.target.value)
+            if (error) {
+              setError(false)
+            }
+          }}
+          aria-invalid={error}
+          aria-describedby={error ? 'access-password-error' : undefined}
+        />
+        {error ? (
+          <p id="access-password-error" className="access-gate__error" role="alert">
+            パスワードが違います
+          </p>
+        ) : null}
+        <button type="submit" className="access-gate__submit">
+          入室する
+        </button>
+      </form>
+    </div>
+  )
+}
+
 export default function App() {
+  const [unlocked, setUnlocked] = useState(readGateUnlocked)
   const [fateSeed, setFateSeed] = useState<number | null>(null)
   const [selectedCard, setSelectedCard] = useState<DeckCard | null>(null)
   const [language, setLanguage] = useState<ReadingLanguage>('ja')
@@ -58,6 +126,14 @@ export default function App() {
   const handleStart = useCallback(() => {
     setFateSeed(seedFromMoment())
   }, [])
+
+  if (!unlocked) {
+    return (
+      <div className="app">
+        <AccessGate onUnlock={() => setUnlocked(true)} />
+      </div>
+    )
+  }
 
   return (
     <div className="app">
