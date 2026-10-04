@@ -31,7 +31,7 @@ const COPY = {
     enter: 'Нээх',
     start: 'Мэргэ эхлүүлэх',
     loading: 'Өрөөг бэлдэж байна',
-    questionLabel: 'Юуг мэргэхийг хүсэж байна вэ?',
+    questionLabel: 'Юуны талаар мэргэлэх вэ?',
     questionPlaceholder: 'Ж: Ажил, хайр, эргэлзээ…',
     questionHint: 'Товчхон байж болно. Хоосон орхиод ч эхлүүлж болно.',
   },
