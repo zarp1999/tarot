@@ -10,6 +10,8 @@ export type ReadingTopics = {
   career: string
   advice: string
   caution: string
+  /** AI 質問回答モード用。無い場合は general を回答として使う */
+  answer?: string
 }
 
 export type CardReading = {
@@ -43,6 +45,7 @@ type CardDataset = {
   >
   cards: Array<{
     id: number
+    source_name?: string
     locales: Record<
       ReadingLanguage,
       {
@@ -56,6 +59,10 @@ type CardDataset = {
 
 const dataset = natural as CardDataset
 
+export function getCardSourceName(id: number): string | undefined {
+  return dataset.cards.find((item) => item.id === id)?.source_name
+}
+
 export function getCardReading(
   card: DeckCard,
   options?: {
@@ -63,7 +70,7 @@ export function getCardReading(
     reversed?: boolean
   },
 ): CardReading {
-  const language = options?.language ?? 'ja'
+  const language = options?.language ?? 'mn'
   const reversed = options?.reversed ?? card.reversed
   const orientation: ReadingOrientation = reversed ? 'reversed' : 'upright'
   const entry = dataset.cards.find((item) => item.id === card.id)

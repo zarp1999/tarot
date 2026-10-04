@@ -1,10 +1,11 @@
-import { Suspense, useCallback, useMemo, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { useProgress } from '@react-three/drei'
 import { TableScene } from './scene/TableScene'
 import { CardModal } from './components/CardModal'
-import { getCardReading, type ReadingLanguage } from './data/readings'
+import { fetchCardReading } from './data/fetchReading'
+import { getCardReading, type CardReading, type ReadingLanguage } from './data/readings'
 import type { DeckCard } from './data/deck'
 import { seedFromMoment } from './data/rng'
 import './App.css'
@@ -20,6 +21,9 @@ const COPY = {
     enter: '入室する',
     start: '占いを始める',
     loading: '部屋を用意しています',
+    questionLabel: '何を占いたいですか？',
+    questionPlaceholder: '例: 仕事の進路、恋愛の悩み、今の迷い…',
+    questionHint: '短くて大丈夫です。空欄でも始められます。',
   },
   mn: {
     password: 'Нууц үг',
@@ -27,6 +31,9 @@ const COPY = {
     enter: 'Нээх',
     start: 'Мэргэ эхлүүлэх',
     loading: 'Өрөөг бэлдэж байна',
+    questionLabel: 'Юуг мэргэхийг хүсэж байна вэ?',
+    questionPlaceholder: 'Ж: Ажил, хайр, эргэлзээ…',
+    questionHint: 'Товчхон байж болно. Хоосон орхиод ч эхлүүлж болно.',
   },
 } as const
 
@@ -40,9 +47,9 @@ function readGateUnlocked(): boolean {
 
 function readLanguage(): ReadingLanguage {
   try {
-    return sessionStorage.getItem(LANG_STORAGE_KEY) === 'mn' ? 'mn' : 'ja'
+    return sessionStorage.getItem(LANG_STORAGE_KEY) === 'ja' ? 'ja' : 'mn'
   } catch {
-    return 'ja'
+    return 'mn'
   }
 }
 
@@ -68,22 +75,54 @@ function LoadingScreen({
 function StartOverlay({
   started,
   language,
+  initialQuestion,
   onStart,
 }: {
   started: boolean
   language: ReadingLanguage
-  onStart: () => void
+  initialQuestion: string
+  onStart: (question: string) => void
 }) {
   const { active } = useProgress()
+  const [question, setQuestion] = useState(initialQuestion)
+  const copy = COPY[language]
+
+  useEffect(() => {
+    if (!started) {
+      setQuestion(initialQuestion)
+    }
+  }, [started, initialQuestion])
+
   if (started || active) {
     return null
   }
 
   return (
     <div className="start-overlay" lang={language}>
-      <button type="button" className="start-overlay__button" onClick={onStart}>
-        {COPY[language].start}
-      </button>
+      <form
+        className="start-overlay__panel"
+        onSubmit={(event) => {
+          event.preventDefault()
+          onStart(question.trim())
+        }}
+      >
+        <label className="start-overlay__label" htmlFor="fortune-question">
+          {copy.questionLabel}
+        </label>
+        <textarea
+          id="fortune-question"
+          className="start-overlay__textarea"
+          value={question}
+          onChange={(event) => setQuestion(event.target.value)}
+          placeholder={copy.questionPlaceholder}
+          rows={3}
+          maxLength={500}
+        />
+        <p className="start-overlay__hint">{copy.questionHint}</p>
+        <button type="submit" className="start-overlay__button">
+          {copy.start}
+        </button>
+      </form>
     </div>
   )
 }
@@ -186,7 +225,13 @@ function AccessGate({
 export default function App() {
   const [unlocked, setUnlocked] = useState(readGateUnlocked)
   const [fateSeed, setFateSeed] = useState<number | null>(null)
+  const [question, setQuestion] = useState('')
   const [selectedCard, setSelectedCard] = useState<DeckCard | null>(null)
+  const [reading, setReading] = useState<CardReading | null>(null)
+  const [readingLoading, setReadingLoading] = useState(false)
+  const [readingSource, setReadingSource] = useState<'deepseek' | 'local' | null>(
+    null,
+  )
   const [language, setLanguage] = useState<ReadingLanguage>(readLanguage)
 
   const handleLanguageChange = useCallback((next: ReadingLanguage) => {
@@ -197,18 +242,57 @@ export default function App() {
       // Language still applies for this visit if storage is unavailable.
     }
   }, [])
-  const started = fateSeed !== null
-  const reading = useMemo(
-    () =>
-      selectedCard
-        ? getCardReading(selectedCard, { language })
-        : null,
-    [selectedCard, language],
-  )
 
-  const handleStart = useCallback(() => {
+  const started = fateSeed !== null
+
+  const handleStart = useCallback((nextQuestion: string) => {
+    setQuestion(nextQuestion)
     setFateSeed(seedFromMoment())
   }, [])
+
+  const handleRestart = useCallback(() => {
+    window.location.reload()
+  }, [])
+
+  useEffect(() => {
+    if (!selectedCard) {
+      return
+    }
+
+    const localReading = getCardReading(selectedCard, { language })
+    setReading(localReading)
+    setReadingLoading(true)
+    setReadingSource(null)
+
+    const controller = new AbortController()
+
+    void fetchCardReading(selectedCard, {
+      language,
+      question,
+      signal: controller.signal,
+    })
+      .then(({ reading: nextReading, source }) => {
+        if (controller.signal.aborted) {
+          return
+        }
+        setReading(nextReading)
+        setReadingSource(source)
+      })
+      .catch(() => {
+        if (controller.signal.aborted) {
+          return
+        }
+        setReading(localReading)
+        setReadingSource('local')
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setReadingLoading(false)
+        }
+      })
+
+    return () => controller.abort()
+  }, [selectedCard, language, question])
 
   if (!unlocked) {
     return (
@@ -241,14 +325,22 @@ export default function App() {
         </Suspense>
       </Canvas>
       <div className="vignette" aria-hidden="true" />
-      <StartOverlay started={started} language={language} onStart={handleStart} />
+      <StartOverlay
+        started={started}
+        language={language}
+        initialQuestion={question}
+        onStart={handleStart}
+      />
       {reading ? (
         <CardModal
-          key={`${reading.id}-${reading.orientation}`}
+          key={`${reading.id}-${reading.orientation}-${language}`}
           reading={reading}
+          question={question}
+          loading={readingLoading}
+          source={readingSource}
           language={language}
           onLanguageChange={handleLanguageChange}
-          onClose={() => setSelectedCard(null)}
+          onRestart={handleRestart}
         />
       ) : null}
     </div>

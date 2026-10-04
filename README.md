@@ -30,3 +30,8 @@ GitHub Actions で [GitHub Pages](https://pages.github.com/) にデプロイし�
 - サイト: https://zarp1999.github.io/tarot/
 
 初回のみ、リポジトリの **Settings → Pages → Source** を **GitHub Actions** にしてください（Actions の初回デプロイ後に自動設定される場合もあります）。
+
+## DeepSeek Reading API (Cloudflare Worker)
+
+カード解説を AI で返す Worker コードは [`worker/reading-api.js`](./worker/reading-api.js) です。  
+貼り付け手順は [`worker/README.md`](./worker/README.md) を参照してください。
